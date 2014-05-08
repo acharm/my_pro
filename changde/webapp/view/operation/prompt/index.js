@@ -1,52 +1,52 @@
-Y.use("yam-core", "yam-utils", "yam-project-service-helper", "jq-slickgrid", "yam-control-tooltip", function(Y){
+Y.use("yam-core", "yam-utils", "yam-project-service-helper", "jq-slickgrid", "yam-control-tooltip", function(Y) {
 	var Y2 = Y.YAM, $ = Y.jQuery;
 	var getShopInfoList = Y2.ServiceHelper.newService("operation/prompt","getshopinfolist");
 	var saveShopSmsInfo = Y2.ServiceHelper.newService("operation/prompt","saveshopsmsinfo");
 	var strings = window.i18nString || {};
 	var columns = [
-	                {name: "rowNum",			width: 29,	content:""			},	{name: "shopName",			width:219,	content:"店铺名称"	},
+	                {name: "rowNum",		width: 29,	content:""		},	{name: "shopName",		width:219,	content:"店铺名称"	},
 	                {name: "legalPersonName",	width: 74,	content:"法人姓名"	},	{name: "contactWay", 		width:104,	content:"联系方式"	},
 	                {name: "businessLicence",	width: 99,	content:"营业证号"	},	{name: "areaBelong", 		width: 99,	content:"所属区域"	},
-	                {name: "registDate", 		width: 99,	content:"注册日期"	},	{name: "endDate", 			width: 99,	content:"到期日期"	},
-	                {name: "shopArea", 			width: 99,	content:"营业面积"	},	{name: "registCapital", 	width: 99,	content:"注册资金"	},
-	                {name: "commodityScope", 	width:230,	content:"营业范围"	},	{name: "address", 			width:200,	content:"地址", 		}
+	                {name: "registDate", 		width: 99,	content:"注册日期"	},	{name: "endDate", 		width: 99,	content:"到期日期"	},
+	                {name: "shopArea", 		width: 99,	content:"营业面积"	},	{name: "registCapital", 	width: 99,	content:"注册资金"	},
+	                {name: "commodityScope", 	width:230,	content:"营业范围"	},	{name: "address", 		width:200,	content:"地址", 	}
 	                ];
-	var shopListData={}, showShopID=""; // Store list info data(to shopListData) using data primary_key(showShopID) as key.
-	var _currentShopID="";
+	var shopListData = {}, showShopID = ""; // Store list info data(to shopListData) using data primary_key(showShopID) as key.
+	var _currentShopID = "";
 	
 	var Prompt = {
-		init: function(){
+		init: function() {
 			this.showShopInfoList();
 			this.bindBtn();
 		},
 		
-		showShopInfoList: function(){
+		showShopInfoList: function() {
 			this.showShopInfoListTitle();
 			this.showShopInfoListDataBody({});	// for first time loading use obj {} as null ^_^
 		},
 		
-		showShopInfoListTitle: function(){
+		showShopInfoListTitle: function() {
 			var tbody = document.getElementById("shopInfoListTitle");
-			Y.one("#shopInfoListTitle").setStyle("width",function(){ // plus all width(es) as title total width.
-				var widthLen=0;for(var i=0;i<columns.length;i++){widthLen=widthLen+columns[i].width+1;}return widthLen+"px";
+			Y.one("#shopInfoListTitle").setStyle("width",function() { // plus all width(es) as title total width.
+				var widthLen=0;for(var i=0;i<columns.length;i++) {widthLen=widthLen+columns[i].width+1;}return widthLen+"px";
 			}());
 			var row = tbody.insertRow(0);
 			row.height = "24px";
-			for(var i=0; i<columns.length; i++){
+			for(var i=0; i<columns.length; i++) {
 				var rowcolumn=row.insertCell(i)
 				rowcolumn.width = columns[i].width + "px";
 				rowcolumn.innerHTML = "<div rowID='' class='' style='width:"+columns[i].width+"px;background-color:#F3F3F3;height:23px;'>"+columns[i].content+"</div>";
 			}
 		},
 		
-		showShopInfoListDataBody: function(val){
+		showShopInfoListDataBody: function(val) {
 			this.showLoading(strings.dataLoading);
 			getShopInfoList(val).when(function(data){
 				$("#shopInfoListDataBody").text("");	//clear list data
 				shopListData = {};
 //				// show data
 				var list = data.list;
-				if(list.length <= 0){
+				if(list.length <= 0) {
 					
 				}
 				Y.one("#shopInfoListDataBody").setStyle("width",function(){var widthLen=0;for(var i=0;i<columns.length;i++){widthLen=widthLen+columns[i].width+1;}return widthLen+"px";}());
