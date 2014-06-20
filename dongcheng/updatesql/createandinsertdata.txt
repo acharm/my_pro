@@ -1,0 +1,125 @@
+----------------------根据EXCEL建表----------------------------------------
+create table dldata.tccivilcitysubtypedetail_temp (
+       SUBTYPENAME         VARCHAR2(200),
+       细类代码            varchar2(80),
+       CREATESTANDARD      VARCHAR2(400),
+       CREATESTANDARDSHORT VARCHAR2(200),
+       FINISHSTANDARD      VARCHAR2(400),
+       小类_细类           VARCHAR2(400),
+       四级指标            VARCHAR2(200),
+       三级指标            VARCHAR2(200),
+       统计图层            varchar2(500)
+)
+tablespace DLDATA_DATA
+  pctfree 10
+  initrans 1
+  maxtrans 255
+  storage
+  (
+    initial 64K
+    minextents 1
+    maxextents unlimited
+  );
+
+--------------------------从excel里复制数据过来 查入数据-------复制时EXCEL的第一列留空并比表多一列----------------------------------
+insert into dldata.tccivilcitysubtypedetail_temp (SUBTYPENAME, 细类代码, CREATESTANDARD, CREATESTANDARDSHORT, FINISHSTANDARD, 小类_细类, 四级指标, 三级指标, 统计图层)
+values ('SUBTYPENAME', '细类代码', 'CREATESTANDARD', 'CREATESTANDARDSHORT', 'FINISHSTANDARD', '小类+细类', '四级指标', '三级指标', '统计图层');
+
+insert into dldata.tccivilcitysubtypedetail_temp (SUBTYPENAME, 细类代码, CREATESTANDARD, CREATESTANDARDSHORT, FINISHSTANDARD, 小类_细类, 四级指标, 三级指标, 统计图层)
+values ('暴露垃圾', '1010201', '公共场合垃圾未倒入容器', '未倒入容器', '清运清除', '暴露垃圾未倒入容器', 'Ⅲ-42公共场所道德 1）', 'Ⅲ-42公共场所道德', '道路等级、公园绿地');
+
+insert into dldata.tccivilcitysubtypedetail_temp (SUBTYPENAME, 细类代码, CREATESTANDARD, CREATESTANDARDSHORT, FINISHSTANDARD, 小类_细类, 四级指标, 三级指标, 统计图层)
+values ('暴露垃圾', '1010202', '清运不及时', '清运不及时', '清运清除', '暴露垃圾清运不及时', 'Ⅲ-42公共场所道德 1）', 'Ⅲ-42公共场所道德', '道路等级、公园绿地');
+
+insert into dldata.tccivilcitysubtypedetail_temp (SUBTYPENAME, 细类代码, CREATESTANDARD, CREATESTANDARDSHORT, FINISHSTANDARD, 小类_细类, 四级指标, 三级指标, 统计图层)
+values ('积存垃圾渣土', '1010301', '未按规定及时清理混合垃圾', '混合垃圾清运不及时', '清运清除', '积存垃圾渣土混合垃圾清运不及时', 'Ⅲ-42公共场所道德 1）', 'Ⅲ-42公共场所道德', '道路等级、公园绿地');
+
+insert into dldata.tccivilcitysubtypedetail_temp (SUBTYPENAME, 细类代码, CREATESTANDARD, CREATESTANDARDSHORT, FINISHSTANDARD, 小类_细类, 四级指标, 三级指标, 统计图层)
+values ('积存垃圾渣土', '1010302', '未按规定及时清理的建筑垃圾', '建筑垃圾清运不及时', '清运清除', '积存垃圾渣土建筑垃圾清运不及时', 'Ⅲ-42公共场所道德 1）', 'Ⅲ-42公共场所道德', '道路等级、公园绿地');;
+
+commit;
+
+------------------------------------根据业务再加四列-------------------------------------------------------
+alter table dldata.tccivilcitysubtypedetail_temp add SANJIZBID integer;
+alter table dldata.tccivilcitysubtypedetail_temp add SIJIZBID integer;
+alter table dldata.tccivilcitysubtypedetail_temp add DETAILID integer;
+alter table dldata.tccivilcitysubtypedetail_temp add SUBTYPEID integer;
+
+--------------------往表里加字段-----------------------------------------------------------
+
+delete from dldata.tccivilcitysubtypedetail_temp t where t.subtypename = 'SUBTYPENAME';
+COMMIT;
+
+update dldata.tccivilcitysubtypedetail_temp set sijizbid = 421 where 四级指标 = 'Ⅲ-42公共场所道德 1）';
+commit;
+
+---------------------------------------------------------------------------------------------
+
+ALTER TABLE dldata.tccivilcitytargetmin DROP PRIMARY KEY;
+
+insert into dldata.tccivilcitytargetmin (minid, mincode, subid, subname, targettypeid, targettypename, mintypeid)
+select minid, mincode, subid, subname, targettypeid, targettypename, mintypeid from (
+    select sijizbid minid, min(t.四级指标) mincode, min(sanjizbid) subid, min(t.三级指标) subname, 
+           1 targettypeid, '日常监测指标' targettypename, 3 mintypeid 
+    from dldata.tccivilcitysubtypedetail_temp t group by sijizbid order by sijizbid);
+
+commit;
+
+--------------------------------------------------------------------------------------------
+declare 
+    v_subtypename varchar2(200);
+    v_subtypeid integer;
+begin
+    for c in (
+        select subtypename from (select distinct(t.subtypename) subtypename,t.subtypeid from             dldata.tccivilcitysubtypedetail_temp t) 
+    ) loop
+        select subtypeid into v_subtypeid from (
+            select distinct(subtypeid) subtypeid from umsys.tcdiceventsubtypedetail@dblink_tochengguan t where t.subtypename = c.subtypename
+        );
+        update dldata.tccivilcitysubtypedetail_temp T set subtypeid = v_subtypeid where T.subtypename = c.subtypename;
+        commit;
+    end loop;
+end;
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+insert into dldata.tccivilcitytargetsubtosubtype (subtypeid, minid, subtypename,mintypeid)
+select distinct(subtypeid) subtypeid, sijizbid, subtypename,3 mintypeid from dldata.tccivilcitysubtypedetail_temp;
+commit;
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
+/* declare 
+    v_detailname varchar2(200);
+    v_detailid integer;
+begin
+    for rc_xl in ( 
+        select distinct(subtypeid) subtypeid from dldata.tccivilcitysubtypedetail_temp
+    ) loop
+        for rc_mx in ( 
+            select a.createstandardshort 
+            from dldata.tccivilcitysubtypedetail_temp a 
+            inner join umsys.tcdiceventsubtypedetail@dblink_tochengguan b on a.createstandardshort = b.createstandardshort
+            where a.subtypeid = rc_xl.subtypeid
+        ) loop
+            select tf.detailid into v_detailid 
+            from umsys.tcdiceventsubtypedetail@dblink_tochengguan tf 
+            where tf.subtypeid = rc_xl.subtypeid and tf.createstandardshort = rc_mx.createstandardshort; 
+            
+            update dldata.tccivilcitysubtypedetail_temp tt set tt.detailid = v_detailid
+            where tt.subtypeid = rc_xl.subtypeid and tt.createstandardshort = rc_mx.createstandardshort;
+        end loop;
+        commit;
+    end loop;
+end;
+*/
+
+update dldata.tccivilcitysubtypedetail_temp tt set tt.detailid =(
+    select detailid from umsys.tcdiceventsubtypedetail@dblink_tochengguan 
+    where createstandardshort=tt.createstandardshort and subTypeID=tt.subtypeid
+) where exists(
+    select null from umsys.tcdiceventsubtypedetail@dblink_tochengguan 
+    where subTypeID=tt.subtypeid and createstandardshort= tt.createstandardshort
+);
+commit;
+---------------------------------------------------------------------------------------------------------------------------
